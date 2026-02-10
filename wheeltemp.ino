@@ -171,6 +171,7 @@ void runtest(){
 }
 
 void dumptoserial(){
+  flash.powerUp()
   Serial.print("DUMPING DATA TO SERIAL. Number of tests run: ");
   Serial.println(numtest, DEC);
   for(int i = 0; i < 8; i++){
@@ -198,5 +199,6 @@ void dumptoserial(){
   Serial.println("DUMP COMPLETE, ERASING FLASH");
   flash.eraseChip();
   Serial.println("FLASH ERASED");
+  flash.powerDown()
 
 }
