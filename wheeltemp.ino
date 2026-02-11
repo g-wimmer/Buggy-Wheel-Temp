@@ -1,19 +1,22 @@
 #include <LowPower.h>
 #include <SPIMemory.h>
+#include <avr/power.h>
 //Arduino based wheel temperature probe by Gabe
 
 const int thermpin = A3;
 const int lightpin = 5; 
 const int startbuttonpin = 2; //interrupt pin
 const int senddatabuttonpin =3;
-const int total_seconds = 60;
+const int total_seconds = 10;
 uint16_t numtest = 0;
-bool flashpowererror = false
+bool flashpowererror = false;
 
 volatile unsigned long buttontime = 0;
-volatile bool buttonpressed = false;
+volatile bool buttonPressed = false;
 volatile uint8_t longshortpress = 0; //1 for short 2 for long
+volatile unsigned long pressStartTime = 0;
 
+const unsigned long DEBOUNCE_DELAY = 50; // Debounce time in milliseconds
 
 uint32_t currentaddress = 0;
 
@@ -21,6 +24,8 @@ int Vo;
 float R1=10000;
 float logR2, R2, T;
 float c1 = .001174, c2 = .000234125, c3 = .0000000876741;
+
+
 
 SPIFlash flash(10);
 
@@ -54,10 +59,14 @@ void setup() {
   pinMode(thermpin, INPUT);
   pinMode(startbuttonpin, INPUT_PULLUP);
 
+  delay(100);
+
   if (!flash.begin()) {
+    digitalWrite(lightpin, HIGH);
     Serial.println("Flash memory init error. hanging program");
     while(1);
   }
+  delay(100);
   digitalWrite(lightpin, HIGH);
   attachInterrupt(digitalPinToInterrupt(startbuttonpin), buttonpressedIR, FALLING);
 
@@ -74,7 +83,11 @@ void setup() {
     Serial.println("Erasing complete");
 
   }
-  flash.powerDown()
+  delay(10);
+  
+  Serial.print("Current numtest: ");
+  Serial.print(numtest, DEC);
+  Serial.println();
 
   currentaddress = 2 + (numtest * total_seconds * 3);
 
@@ -86,21 +99,25 @@ void setup() {
 }
 
 void buttonpressedIR(){
-  if(!buttonpressed){
-    buttontime = millis();
-    buttonpressed = true;
+  static unsigned long lastInterruptTime = 0;
+  unsigned long interruptTime = millis();
+  if (interruptTime - lastInterruptTime > DEBOUNCE_DELAY) {
+    buttonPressed = true;           // Signal main loop to handle press
+    pressStartTime = interruptTime; // Record when press began
   }
-
+  lastInterruptTime = interruptTime;
 }
 
 
 
-void loop() {
-  if(buttonpressed){
-    delay(50);//debounce
 
-    unsigned long pressDuration = waitForRelease();
-    if(buttontime - millis() < 6000){
+
+void loop() {
+  if(buttonPressed){
+    waitForRelease();
+    buttonPressed = false;
+    unsigned long pressDuration = millis() - pressStartTime;
+    if(pressDuration < 4000){
       Serial.println("short press, starting test");
 
       runtest();
@@ -108,11 +125,11 @@ void loop() {
       Serial.println("long press, dumping data");
       dumptoserial();
     }
-    buttonpressed = false;
+    buttonPressed = false;
 
   }
   Serial.println("In the main loop, waiting for a button press");
-  delay(50);
+  delay(100);
   LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
 
 }
@@ -121,18 +138,18 @@ unsigned long waitForRelease(){
   unsigned long waitstart = millis();
   unsigned long pressstart = buttontime;
   while(digitalRead(startbuttonpin) == LOW){
-    if(millis() - waitstart > 30000){
+    if(millis() - waitstart > 8000){
       Serial.println("Button got stuck? Timeout occured in waitforrelease");
       break;
     }
     delay(10);
   }
-  return millis() - pressstart;
+  delay(DEBOUNCE_DELAY);
 }
 
 uint8_t readtemp(){
   power_adc_enable();
-  delayMicrosecond(100);
+  delayMicroseconds(100);
   Vo = analogRead(thermpin);
   power_adc_disable();
   R2 = R1 * (1023.0 / (float)Vo - 1.0);
@@ -149,7 +166,14 @@ void runtest(){
   digitalWrite(lightpin, HIGH);
   Serial.println("Starting recording");
   uint16_t bufferIndex = 0;
-  numtest++;
+  
+  delay(1000);
+  digitalWrite(lightpin, LOW);
+  
+  delay(10);
+  flash.eraseSection(currentaddress,3*total_seconds);
+  
+
   for(int samplenum = 0; samplenum<total_seconds; samplenum++){
 
     buffer[bufferIndex].timestamp = samplenum;
@@ -168,10 +192,17 @@ void runtest(){
       writeBuffer(buffer, bufferIndex);
       bufferIndex = 0;
   }
+  numtest++;
+  
+  delay(10);
+  flash.writeShort(0x000000, numtest);
+  
+
 }
 
 void dumptoserial(){
-  flash.powerUp()
+ 
+  delay(10);
   Serial.print("DUMPING DATA TO SERIAL. Number of tests run: ");
   Serial.println(numtest, DEC);
   for(int i = 0; i < 8; i++){
@@ -199,6 +230,6 @@ void dumptoserial(){
   Serial.println("DUMP COMPLETE, ERASING FLASH");
   flash.eraseChip();
   Serial.println("FLASH ERASED");
-  flash.powerDown()
+  
 
 }
