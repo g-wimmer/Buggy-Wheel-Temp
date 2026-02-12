@@ -1,7 +1,7 @@
 #include <LowPower.h>
 #include <SPIMemory.h>
 #include <avr/power.h>
-//Arduino based wheel temperature probe by Gabe
+//Arduino based wheel temperature probe by Gabriel Wimmer
 
 const int thermpin = A3;
 const int lightpin = 5; 
@@ -13,13 +13,13 @@ bool flashpowererror = false;
 
 volatile unsigned long buttontime = 0;
 volatile bool buttonPressed = false;
-volatile uint8_t longshortpress = 0; //1 for short 2 for long
 volatile unsigned long pressStartTime = 0;
 
 const unsigned long DEBOUNCE_DELAY = 50; // Debounce time in milliseconds
 
 uint32_t currentaddress = 0;
 
+//Constants for Steinhart-Hart equation
 int Vo;
 float R1=10000;
 float logR2, R2, T;
@@ -29,12 +29,14 @@ float c1 = .001174, c2 = .000234125, c3 = .0000000876741;
 
 SPIFlash flash(10);
 
+//datapoint structure to hold the time and temp
 struct datapoint{
   uint16_t timestamp;
   uint8_t temp;
 };
 
-datapoint buffer[100];
+//ram buffer to hold datapoints
+datapoint buffer[100]; 
 
 //write data from the buffer to flash via spi
 void writeBuffer(datapoint *buff, uint16_t num){
@@ -48,6 +50,7 @@ void writeBuffer(datapoint *buff, uint16_t num){
 }
 
 void setup() {
+  //Disable unncessary processes on the Arduino to save power
   power_adc_disable();
   power_timer1_disable();
   power_timer2_disable();
@@ -70,7 +73,7 @@ void setup() {
   digitalWrite(lightpin, HIGH);
   attachInterrupt(digitalPinToInterrupt(startbuttonpin), buttonpressedIR, FALLING);
 
-  Serial.println("------STARTING PROGRAM--------------------");
+  Serial.println("--------------------STARTING PROGRAM--------------------");
 
   numtest = flash.readShort(0x000000);
   if(numtest < 0 || numtest > 20){ //sanity check on the number of records that are currently in flash
@@ -78,12 +81,10 @@ void setup() {
     Serial.println(numtest, DEC);
     numtest = 0;
     Serial.println("Erasing chip, may take time");
-    flash.eraseChip();//zero out chip
+    flash.eraseChip(); //zero out chip
     flash.writeShort(0x000000, numtest);
     Serial.println("Erasing complete");
-
   }
-  delay(10);
   
   Serial.print("Current numtest: ");
   Serial.print(numtest, DEC);
@@ -98,11 +99,12 @@ void setup() {
 
 }
 
+//Button press interrupt function that is used to interrupt the sleeping system
 void buttonpressedIR(){
   static unsigned long lastInterruptTime = 0;
   unsigned long interruptTime = millis();
   if (interruptTime - lastInterruptTime > DEBOUNCE_DELAY) {
-    buttonPressed = true;           // Signal main loop to handle press
+    buttonPressed = true;   // Signal main loop to handle press
     pressStartTime = interruptTime; // Record when press began
   }
   lastInterruptTime = interruptTime;
@@ -111,7 +113,7 @@ void buttonpressedIR(){
 
 
 
-
+//Main loop that waits for a button press
 void loop() {
   if(buttonPressed){
     waitForRelease();
@@ -134,6 +136,7 @@ void loop() {
 
 }
 
+//Waits for the button to be released
 unsigned long waitForRelease(){
   unsigned long waitstart = millis();
   unsigned long pressstart = buttontime;
@@ -147,6 +150,8 @@ unsigned long waitForRelease(){
   delay(DEBOUNCE_DELAY);
 }
 
+//Reads the temperature via the thermisitor
+//Utilizes the Stienhart-Hart equation to calculate the temperature
 uint8_t readtemp(){
   power_adc_enable();
   delayMicroseconds(100);
@@ -161,16 +166,14 @@ uint8_t readtemp(){
 
 }
 
-//runs the temperature output for samplenum seconds
+//Begins a new test. Records a temperature reading every second for total_seconds
+//Buffers data points in RAM and stores it in flash once the buffer is full
 void runtest(){
   digitalWrite(lightpin, HIGH);
   Serial.println("Starting recording");
   uint16_t bufferIndex = 0;
-  
-  delay(1000);
+  delay(500);
   digitalWrite(lightpin, LOW);
-  
-  delay(10);
   flash.eraseSection(2+(3*total_seconds*numtest),3*total_seconds);
   
 
@@ -193,16 +196,14 @@ void runtest(){
       bufferIndex = 0;
   }
   numtest++;
-  
-  delay(10);
   flash.writeShort(0x000000, numtest);
   
 
 }
 
+//Dump the datapoints from the flash memory to serial to access them from your computer
 void dumptoserial(){
- 
-  delay(10);  
+
   Serial.print("DUMPING DATA TO SERIAL. Number of tests run: ");
   Serial.println(numtest, DEC);
   for(int i = 0; i < 8; i++){
