@@ -7,7 +7,7 @@ const int thermpin = A3;
 const int lightpin = 5; 
 const int startbuttonpin = 2; //interrupt pin
 const int senddatabuttonpin =3;
-const int total_seconds = 10;
+const int total_seconds = 360;
 uint16_t numtest = 0;
 bool flashpowererror = false;
 
@@ -202,7 +202,7 @@ void runtest(){
 
 void dumptoserial(){
  
-  delay(10);
+  delay(10);  
   Serial.print("DUMPING DATA TO SERIAL. Number of tests run: ");
   Serial.println(numtest, DEC);
   for(int i = 0; i < 8; i++){
