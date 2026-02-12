@@ -171,7 +171,7 @@ void runtest(){
   digitalWrite(lightpin, LOW);
   
   delay(10);
-  flash.eraseSection(currentaddress,3*total_seconds);
+  flash.eraseSection(2+(3*total_seconds*numtest),3*total_seconds);
   
 
   for(int samplenum = 0; samplenum<total_seconds; samplenum++){
