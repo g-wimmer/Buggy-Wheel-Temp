@@ -226,7 +226,7 @@ void dumptoserial(){
   flash.powerUp();
   Serial.print("DUMPING DATA TO SERIAL. Number of tests run: ");
   Serial.println(numtest, DEC);
-  for(int i = 0; i < 8; i++){
+  for(int i = 0; i < 5; i++){
     digitalWrite(lightpin, HIGH);
     delay(100);
     digitalWrite(lightpin,LOW);
@@ -248,6 +248,7 @@ void dumptoserial(){
     }
 
   }
+  currentaddress = 2;
   Serial.println("DUMP COMPLETE, ERASING FLASH");
   flash.eraseChip();
   Serial.println("FLASH ERASED");
