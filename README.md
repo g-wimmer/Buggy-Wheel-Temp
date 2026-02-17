@@ -1,1 +1,1 @@
-Arduino Pro Mini 3.3v based temperature probe for Fringe buggys. The goal is to measure the heated wheels and temperature loss. Use Lithium Primary batteries (not lipo) if you dont want to make a bomb in the egg.
+Arduino Pro Mini 3.3v based temperature probe for Fringe buggys. The goal is to measure the heated wheels the temperature of heated wheels. Use Lithium Primary batteries (not lipo) if you dont want to make a bomb in the egg.

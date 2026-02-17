@@ -7,7 +7,7 @@ const int thermpin = A3;
 const int lightpin = 5; 
 const int startbuttonpin = 2; //interrupt pin
 const int senddatabuttonpin =3;
-const int total_seconds = 360;
+const int total_seconds = 10;
 uint16_t numtest = 0;
 bool flashpowererror = false;
 
@@ -23,7 +23,7 @@ uint32_t currentaddress = 0;
 int Vo;
 float R1=10000;
 float logR2, R2, T;
-float c1 = .001174, c2 = .000234125, c3 = .0000000876741;
+float c1 = .001170, c2 = .000234125, c3 = .0000000876741;
 
 
 
@@ -40,6 +40,8 @@ datapoint buffer[100];
 
 //write data from the buffer to flash via spi
 void writeBuffer(datapoint *buff, uint16_t num){
+  flash.powerUp();
+  delay(100);
   Serial.println("Writing entries to flash:");
   Serial.println(num, DEC);
   for(int i=0; i < num; i++){
@@ -47,6 +49,8 @@ void writeBuffer(datapoint *buff, uint16_t num){
     flash.writeByte(currentaddress + 2, buffer[i].temp);
     currentaddress += 3;
   }
+  delay(100);
+  flash.powerDown();
 }
 
 void setup() {
@@ -57,6 +61,7 @@ void setup() {
   power_twi_disable();
 
   Serial.begin(9600);
+  
   delay(100);
   pinMode(lightpin, OUTPUT);
   pinMode(thermpin, INPUT);
@@ -74,9 +79,12 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(startbuttonpin), buttonpressedIR, FALLING);
 
   Serial.println("--------------------STARTING PROGRAM--------------------");
-
+  flash.powerUp();
+  delay(100);
   numtest = flash.readShort(0x000000);
-  if(numtest < 0 || numtest > 20){ //sanity check on the number of records that are currently in flash
+  delay(50);
+
+  if(numtest <= 0 || numtest > 20){ //sanity check on the number of records that are currently in flash
     Serial.print("Resetting number of tests, num records is: ");
     Serial.println(numtest, DEC);
     numtest = 0;
@@ -89,6 +97,8 @@ void setup() {
   Serial.print("Current numtest: ");
   Serial.print(numtest, DEC);
   Serial.println();
+
+  flash.powerDown();
 
   currentaddress = 2 + (numtest * total_seconds * 3);
 
@@ -172,9 +182,13 @@ void runtest(){
   digitalWrite(lightpin, HIGH);
   Serial.println("Starting recording");
   uint16_t bufferIndex = 0;
-  delay(500);
+  //flash.powerUp();
+  delay(200);
+  
+  //flash.eraseSection(2+(3*total_seconds*(numtest)),3*total_seconds);
+  delay(300);
   digitalWrite(lightpin, LOW);
-  flash.eraseSection(2+(3*total_seconds*numtest),3*total_seconds);
+  //flash.powerDown();
   
 
   for(int samplenum = 0; samplenum<total_seconds; samplenum++){
@@ -185,9 +199,12 @@ void runtest(){
     if(bufferIndex >= 100) {
       writeBuffer(buffer, bufferIndex);
       bufferIndex = 0;
+      delay(780); //different delay time to account for writing and flash power up time
+    }else{
+      LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
     }
 
-    LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
+    
 
   }
 
@@ -195,15 +212,18 @@ void runtest(){
       writeBuffer(buffer, bufferIndex);
       bufferIndex = 0;
   }
+  flash.powerUp();
+  delay(100);
   numtest++;
   flash.writeShort(0x000000, numtest);
-  
+  delay(100);
+  flash.powerDown();  
 
 }
 
 //Dump the datapoints from the flash memory to serial to access them from your computer
 void dumptoserial(){
-
+  flash.powerUp();
   Serial.print("DUMPING DATA TO SERIAL. Number of tests run: ");
   Serial.println(numtest, DEC);
   for(int i = 0; i < 8; i++){
@@ -231,6 +251,8 @@ void dumptoserial(){
   Serial.println("DUMP COMPLETE, ERASING FLASH");
   flash.eraseChip();
   Serial.println("FLASH ERASED");
+  delay(100);
+  flash.powerDown();
   
 
 }
