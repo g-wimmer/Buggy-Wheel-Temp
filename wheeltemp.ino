@@ -1,15 +1,17 @@
 #include <LowPower.h>
 #include <SPIMemory.h>
 #include <avr/power.h>
+#include <EEPROM.h>
 //Arduino based wheel temperature probe by Gabriel Wimmer
 
 const int thermpin = A3;
 const int lightpin = 5; 
 const int startbuttonpin = 2; //interrupt pin
 const int senddatabuttonpin =3;
-const int total_seconds = 10;
+const int total_seconds = 250;
 uint16_t numtest = 0;
-bool flashpowererror = false;
+const int eepromAddr = 0;
+
 
 volatile unsigned long buttontime = 0;
 volatile bool buttonPressed = false;
@@ -38,20 +40,7 @@ struct datapoint{
 //ram buffer to hold datapoints
 datapoint buffer[100]; 
 
-//write data from the buffer to flash via spi
-void writeBuffer(datapoint *buff, uint16_t num){
-  flash.powerUp();
-  delay(100);
-  Serial.println("Writing entries to flash:");
-  Serial.println(num, DEC);
-  for(int i=0; i < num; i++){
-    flash.writeShort(currentaddress, buffer[i].timestamp);
-    flash.writeByte(currentaddress + 2, buffer[i].temp);
-    currentaddress += 3;
-  }
-  delay(100);
-  flash.powerDown();
-}
+
 
 void setup() {
   //Disable unncessary processes on the Arduino to save power
@@ -79,18 +68,22 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(startbuttonpin), buttonpressedIR, FALLING);
 
   Serial.println("--------------------STARTING PROGRAM--------------------");
-  flash.powerUp();
+  bool flashup = flash.powerUp();
   delay(100);
-  numtest = flash.readShort(0x000000);
-  delay(50);
+  EEPROM.get(eepromAddr, numtest);
+  if(flashup ==false){
+    Serial.println("Powerup failed in setup");
+  }
+
+  delay(100);
 
   if(numtest <= 0 || numtest > 20){ //sanity check on the number of records that are currently in flash
     Serial.print("Resetting number of tests, num records is: ");
     Serial.println(numtest, DEC);
-    numtest = 0;
     Serial.println("Erasing chip, may take time");
     flash.eraseChip(); //zero out chip
-    flash.writeShort(0x000000, numtest);
+    numtest = 0;
+    EEPROM.put(eepromAddr, numtest);
     Serial.println("Erasing complete");
   }
   
@@ -100,7 +93,7 @@ void setup() {
 
   flash.powerDown();
 
-  currentaddress = 2 + (numtest * total_seconds * 3);
+  currentaddress = (numtest * total_seconds * 3);
 
   Serial.println("Ready - press button to start test");
   delay(200);
@@ -119,8 +112,6 @@ void buttonpressedIR(){
   }
   lastInterruptTime = interruptTime;
 }
-
-
 
 
 //Main loop that waits for a button press
@@ -151,7 +142,7 @@ unsigned long waitForRelease(){
   unsigned long waitstart = millis();
   unsigned long pressstart = buttontime;
   while(digitalRead(startbuttonpin) == LOW){
-    if(millis() - waitstart > 8000){
+    if(millis() - waitstart > 14000){
       Serial.println("Button got stuck? Timeout occured in waitforrelease");
       break;
     }
@@ -204,21 +195,34 @@ void runtest(){
       LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
     }
 
-    
-
   }
 
   if(bufferIndex > 0) {//save remaining in buffer
       writeBuffer(buffer, bufferIndex);
       bufferIndex = 0;
   }
+ 
+  numtest++;
+
+  EEPROM.put(eepromAddr, numtest);
+
+
+}
+
+
+//write data from the buffer to flash via spi
+void writeBuffer(datapoint *buff, uint16_t num){
   flash.powerUp();
   delay(100);
-  numtest++;
-  flash.writeShort(0x000000, numtest);
+  Serial.println("Writing entries to flash:");
+  Serial.println(num, DEC);
+  for(int i=0; i < num; i++){
+    flash.writeShort(currentaddress, buffer[i].timestamp);
+    flash.writeByte(currentaddress + 2, buffer[i].temp);
+    currentaddress += 3;
+  }
   delay(100);
-  flash.powerDown();  
-
+  flash.powerDown();
 }
 
 //Dump the datapoints from the flash memory to serial to access them from your computer
@@ -233,7 +237,7 @@ void dumptoserial(){
     delay(100);
   }
 
-  uint32_t readaddr = 2; // start after number of tests
+  uint32_t readaddr = 0; // start after number of tests
   for(int i = 0; i < numtest; i++){
     Serial.print("Test number: ");
     Serial.println(i, DEC);
@@ -248,12 +252,15 @@ void dumptoserial(){
     }
 
   }
-  currentaddress = 2;
+  currentaddress = 0;
   Serial.println("DUMP COMPLETE, ERASING FLASH");
   flash.eraseChip();
-  Serial.println("FLASH ERASED");
+  numtest = 0;
   delay(100);
   flash.powerDown();
+  EEPROM.put(eepromAddr, numtest);
+  Serial.println("FLASH ERASED");
+ 
   
 
 }
