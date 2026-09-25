@@ -23,9 +23,9 @@ What was actually needed: a device that continuously measures wheel temperature 
 **Microprocessor:** Arduino Pro Mini 3.3V — small enough to fit, and the 3.3V version means the device can run on common coin cells without needing the extra clock speed of the 5V version.
 ![Prototype of the arduino with its flash memory and caps](images/prototype2.jpg)*Prototype with the arduino, flash memory and capacitors wired*
  
-**Power:** Two CR2032 coin cells in series (~6V) feeding the Arduino's voltage regulator. A single CR2032 was tried first (it would've fit in one gap between spokes), but in practice it only supplies ~3.0-3.1V, which isn't enough for the regulator, and skipping the regulator risks brownouts as the cell heats up and its voltage sags — plus the flash module's peak current draw exceeds what one cell can provide. A ceramic capacitor smooths power, and 10 µF electrolytic capacitors help with voltage dips during flash writes. Only lithium primary cells are used — LiPo batteries would combust at these operating temperatures, while lithium primary cells are rated past 200°F, making them safer.
+**Power:** Two CR2032 coin cells in series (~6V) feeding the Arduino's voltage regulator. A single CR2032 was tried first (it would've fit in one gap between spokes), but in practice it only supplies ~3.0-3.1V, which isn't enough for the regulator, and skipping the regulator risks brownouts as the cell heats up and its voltage sags — plus the flash module's peak current draw exceeds what one cell can provide. A ceramic capacitor smooths power, and 10 µF electrolytic capacitors help with voltage dips during flash writes. Only lithium primary cells are used — LiPo batteries would combust at these operating temperatures, while lithium primary cells are rated past 200°F, making them safer. To ease the strain on the batteries, the program powers off all unncessary components of the Arduino and makes use of power saving libraries.
  
-**Storage:** No good way to transmit readings live off a moving buggy, so data is stored on-device and pulled off afterward. Arduino RAM and EEPROM are both too small/limited for this (EEPROM tops out around 40 datapoints and has a limited write life), and a micro-SD rated for these temperatures would be costly. Settled on a 32MB SPI flash module — datapoints buffer in RAM and flush to flash periodically, then get pulled off over serial USB.
+**Storage:** No good way to transmit readings live off a moving buggy, so data is stored on-device and pulled off afterward. Arduino RAM and EEPROM are both too small/limited for this (EEPROM tops out around 40 datapoints and has a limited write life), and a micro-SD rated for these temperatures would be costly. Settled on a 32MB SPI flash module — datapoints buffer in RAM and flush to flash periodically, then get pulled off over serial USB. EEPROM is used to save a pointer to the most recent batch of data in the flash.
  
 **Measurement:** A 10kΩ thermistor paired with a 10kΩ resistor in a voltage divider. The Arduino reads the analog voltage and runs the Steinhart-Hart equation to get a Fahrenheit reading. The probe can be taped to the side of the wheel with reflective heat tape, or seated in a small drilled hole in the polyurethane.
  
@@ -63,7 +63,7 @@ It is evident that without any coverings, the wheels lose temperature rapidly. E
 5. Open a serial connection at 9600 baud (e.g. PuTTY) on the device's COM port.
    - If gibberish is showing up on the TTL, try halving the baud rate to 4800.
 6. Hold the probe's button for 4+ seconds to dump the stored measurements to the serial connection.
-   - Pasting the output into a text file and running the [printplot.py](printplot.py) program can be used to quickly view the data
+   - Pasting the output into a text file and running the [printplot.py](printplot.py) program can be used to quickly view the data.
 
 ## Future Improvements
  
