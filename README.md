@@ -33,7 +33,9 @@ What was actually needed: a device that continuously measures wheel temperature 
 ![Case and lid](images/case.jpg)*Case and its lid*
 
 ## How It Works
- 
+
+Arduino code is located at [wheeltemp/wheeltemp.ino](wheeltemp/wheeltemp.ino)
+
 Each datapoint is a temperature/timestamp pair — an unsigned 8-bit integer (0-255°F) and an unsigned 16-bit timestamp (0-65536), well within the expected temperature range of the wheels.
  
 The probe is controlled by a single button:
@@ -45,9 +47,12 @@ Control tests were run by mounting the wheel on an open-air frame and spinning i
 
 ![Results graph](images/results2.png)*Temperature Graph*
  
+It is evident that without any coverings, the wheels lose temperature rapidly. Each additional heat retention method's improvements are clearly visible across the 250 second test. This provides conclusive evidence that the heat retention methods that have been used on Fringe buggies have a quantifiable impact on the wheels.
+
 ## Usage
  
 1. Seat the battery case and probe case between the wheel's spokes and snap the lids on to secure them.
+   - Optionally thread a ziptie through the opening in the probe lid and case to wrap around the spoke.
 2. Connect the battery pack to the probe.
    - **⚠️ Black (battery, negative) → black (probe). Yellow (battery) → orange (probe).** Wiring this wrong will permanently kill the probe.
 3. Press the probe's button (**do not hold longer than 4 seconds**) to start recording.
@@ -58,6 +63,8 @@ Control tests were run by mounting the wheel on an open-air frame and spinning i
 5. Open a serial connection at 9600 baud (e.g. PuTTY) on the device's COM port.
    - If gibberish is showing up on the TTL, try halving the baud rate to 4800.
 6. Hold the probe's button for 4+ seconds to dump the stored measurements to the serial connection.
+   - Pasting the output into a text file and running the [printplot.py](printplot.py) program can be used to quickly view the data
+
 ## Future Improvements
  
 - **Calibration:** the Steinhart-Hart constants currently used are generic for the 10kΩ/10kΩ pair rather than calibrated for this specific setup. Not critical for measuring relative thermal decay, but would improve absolute accuracy.
