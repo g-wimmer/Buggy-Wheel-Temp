@@ -3,6 +3,10 @@
 #include <avr/power.h>
 #include <EEPROM.h>
 //Arduino based wheel temperature probe by Gabriel Wimmer
+//Measures the temperature of a buggy wheel every second using a thermistor.
+//Implements several power saving techniques to extend useable lifetime.
+//Data is buffered in memory before being written to flash in bursts.
+//EEPROM holds pointers to each test run's data in flash.
 
 const int thermpin = A3;
 const int lightpin = 5; 
@@ -70,7 +74,7 @@ void setup() {
   Serial.println("--------------------STARTING PROGRAM--------------------");
   bool flashup = flash.powerUp();
   delay(100);
-  EEPROM.get(eepromAddr, numtest);
+  EEPROM.get(eepromAddr, numtest); //Check EEPROM for the # of the last test conducted to find where in flash to start saving data
   if(flashup ==false){
     Serial.println("Powerup failed in setup");
   }
@@ -204,13 +208,13 @@ void runtest(){
  
   numtest++;
 
-  EEPROM.put(eepromAddr, numtest);
+  EEPROM.put(eepromAddr, numtest); //Update EEPROM to store the current number of tests in the flash memory
 
 
 }
 
 
-//write data from the buffer to flash via spi
+//Write data from the buffer to flash via spi
 void writeBuffer(datapoint *buff, uint16_t num){
   flash.powerUp();
   delay(100);
@@ -258,7 +262,7 @@ void dumptoserial(){
   numtest = 0;
   delay(100);
   flash.powerDown();
-  EEPROM.put(eepromAddr, numtest);
+  EEPROM.put(eepromAddr, numtest); 
   Serial.println("FLASH ERASED");
  
   
