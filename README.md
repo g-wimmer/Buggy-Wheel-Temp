@@ -32,6 +32,8 @@ What was actually needed: a device that continuously measures wheel temperature 
 **Case:** A 3D-modeled case sized to fit snugly between the spokes. Common filaments like PLA and PETG have glass transition temperatures too close to (or below) 170°F to be viable, so the case is printed in Polymaker PA6-CF (carbon-fiber-reinforced nylon) for its much higher heat deflection temperature. Zip-tie holes secure it against vibration at buggy speeds up to 40mph with no suspension damping. Electronics are potted in a 2-part silicone compound (McMaster-Carr 74965A52) chosen for its gel-like consistency, which wicks under the heat shrink to fully envelope the solder joints.
 ![Case and lid](images/case.jpg)*Case and its lid*
 
+![Probe and power pack attached to a wheel with some duct tape to limit rattling](images/case.jpg)*Probe and power pack attached to a wheel with some extra duct tape to limit rattling*
+
 ## How It Works
 
 Arduino code is located at [wheeltemp/wheeltemp.ino](wheeltemp/wheeltemp.ino)
