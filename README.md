@@ -1,6 +1,6 @@
 # Polyurethane Internal Measurement Probe
  
-A battery-powered, Arduino-based temperature probe that fits within the spokes of a buggy wheel to measure heat loss data, built to quantify how well fairings and fairing liner materials (mylar, heat tape) retain wheel heat during a roll.
+A battery-powered, vibration hardened Arduino-based temperature probe (200°F rating, low power budget, under 2 sq in) that fits within the spokes of a buggy wheel to measure heat loss data, built to quantify how well fairings and fairing liner materials (mylar, heat tape) retain wheel heat during a roll.
  
 ## Context
  
